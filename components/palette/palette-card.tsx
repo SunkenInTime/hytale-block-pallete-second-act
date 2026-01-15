@@ -65,30 +65,21 @@ export function PaletteCard({
         <div className="flex flex-wrap gap-2">
           {blocks.slice(0, 6).map((block, index) =>
             block ? (
-              <div
+              <BlockCard
                 key={`${id}-${index}`}
-                className="w-10 h-10 rounded border"
-                style={{
-                  backgroundColor: block
-                    ? `var(--block-${block.slug}, #808080)`
-                    : "#f0f0f0",
-                }}
-              >
-                <BlockCard
-                  slug={block.slug}
-                  name={block.name}
-                  size="sm"
-                />
-              </div>
+                slug={block.slug}
+                name={block.name}
+                size="sm"
+              />
             ) : (
               <div
                 key={`${id}-empty-${index}`}
-                className="w-10 h-10 rounded border border-dashed border-muted-foreground/30"
+                className="w-8 h-8 rounded border border-dashed border-muted-foreground/30"
               />
             )
           )}
           {blocks.length > 6 && (
-            <div className="w-10 h-10 rounded border flex items-center justify-center text-xs text-muted-foreground">
+            <div className="w-8 h-8 rounded border flex items-center justify-center text-xs text-muted-foreground">
               +{blocks.length - 6}
             </div>
           )}

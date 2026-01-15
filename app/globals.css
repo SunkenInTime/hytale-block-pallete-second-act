@@ -84,3 +84,10 @@
     font-family: var(--font-sans), system-ui, sans-serif;
   }
 }
+
+/* Pixel art rendering - no smoothing/antialiasing */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}

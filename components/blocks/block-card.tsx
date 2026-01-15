@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { getBlockImageUrl, getPlaceholderColor } from "@/lib/images";
+import { getBlockImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 interface BlockCardProps {
@@ -21,19 +20,20 @@ export function BlockCard({
   onClick,
   size = "md",
 }: BlockCardProps) {
+  // Sizes based on 32x32 pixel art - using multiples for crisp scaling
   const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-16 h-16",
-    lg: "w-20 h-20",
+    sm: "w-8 h-8",    // 32px - 1x
+    md: "w-16 h-16",  // 64px - 2x
+    lg: "w-24 h-24",  // 96px - 3x
   };
 
-  const placeholderColor = getPlaceholderColor(slug);
+  const imageUrl = getBlockImageUrl(slug);
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        "relative rounded-lg border-2 transition-all hover:scale-105",
+        "relative border-2 transition-all hover:scale-105 overflow-hidden bg-muted",
         sizeClasses[size],
         selected
           ? "border-primary ring-2 ring-primary/20"
@@ -41,21 +41,12 @@ export function BlockCard({
         onClick && "cursor-pointer"
       )}
       title={name}
+      style={{
+        backgroundImage: `url(${imageUrl})`,
+        backgroundSize: "100% 100%",
+        imageRendering: "pixelated",
+      }}
     >
-      <div
-        className="absolute inset-0 rounded-md"
-        style={{ backgroundColor: placeholderColor }}
-      />
-      <Image
-        src={getBlockImageUrl(slug)}
-        alt={name}
-        fill
-        className="object-cover rounded-md"
-        onError={(e) => {
-          // Hide broken image, show placeholder color
-          e.currentTarget.style.display = "none";
-        }}
-      />
       {category && (
         <span className="absolute -bottom-5 left-0 right-0 text-xs text-muted-foreground truncate text-center">
           {name}
