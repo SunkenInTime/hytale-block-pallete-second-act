@@ -41,7 +41,7 @@ export const getPublished = query({
         return {
           ...palette,
           likesCount: likes.length,
-          user: user ? { _id: user._id, name: user.name, avatarUrl: user.avatarUrl } : null,
+          user: user ? { _id: user._id, name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
         };
       })
     );
@@ -82,7 +82,7 @@ export const getById = query({
       ...palette,
       slotsWithBlocks,
       likesCount: likes.length,
-      user: user ? { _id: user._id, name: user.name, avatarUrl: user.avatarUrl } : null,
+      user: user ? { _id: user._id, name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
     };
   },
 });

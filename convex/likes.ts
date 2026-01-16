@@ -66,7 +66,7 @@ export const getUserLikedPalettes = query({
         return {
           ...palette,
           likesCount: paletteLikes.length,
-          user: user ? { name: user.name, avatarUrl: user.avatarUrl } : null,
+          user: user ? { name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
         };
       })
     );

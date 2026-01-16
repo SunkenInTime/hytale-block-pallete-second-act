@@ -23,10 +23,13 @@ export default defineSchema({
 
   users: defineTable({
     workosId: v.string(),
+    username: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.string(),
     avatarUrl: v.optional(v.string()),
-  }).index("by_workos_id", ["workosId"]),
+    hasCompletedSignup: v.optional(v.boolean()),
+  }).index("by_workos_id", ["workosId"])
+    .index("by_username", ["username"]),
 
   likes: defineTable({
     userId: v.string(),

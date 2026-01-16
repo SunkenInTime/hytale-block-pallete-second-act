@@ -33,11 +33,8 @@ export const getOrCreate = mutation({
       .first();
 
     if (existingUser) {
-      // Update user info if changed
+      // Update user info if changed (but not username - that's user-controlled)
       const updates: Record<string, unknown> = {};
-      if (identity.name && identity.name !== existingUser.name) {
-        updates.name = identity.name;
-      }
       if (identity.email && identity.email !== existingUser.email) {
         updates.email = identity.email;
       }
@@ -45,22 +42,107 @@ export const getOrCreate = mutation({
         updates.avatarUrl = identity.pictureUrl;
       }
 
+      // For existing users who have a name but no hasCompletedSignup flag,
+      // consider them as having completed signup (migration for existing users)
+      const hasCompletedSignup = existingUser.hasCompletedSignup ??
+        (existingUser.name !== undefined && existingUser.name !== null && existingUser.name !== "");
+
       if (Object.keys(updates).length > 0) {
         await ctx.db.patch(existingUser._id, updates);
       }
 
-      return existingUser._id;
+      return {
+        userId: existingUser._id,
+        isNew: false,
+        hasCompletedSignup,
+      };
     }
 
     // Create new user
     const userId = await ctx.db.insert("users", {
       workosId: identity.subject,
-      name: identity.name || undefined,
       email: identity.email || "",
       avatarUrl: identity.pictureUrl || undefined,
+      hasCompletedSignup: false,
     });
 
-    return userId;
+    return { userId, isNew: true, hasCompletedSignup: false };
+  },
+});
+
+export const checkUsernameAvailable = query({
+  args: { username: v.string() },
+  handler: async (ctx, args) => {
+    const username = args.username.toLowerCase().trim();
+
+    // Username validation
+    if (username.length < 3 || username.length > 20) {
+      return { available: false, reason: "Username must be 3-20 characters" };
+    }
+
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      return { available: false, reason: "Username can only contain letters, numbers, and underscores" };
+    }
+
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+
+    return {
+      available: !existingUser,
+      reason: existingUser ? "Username is already taken" : null
+    };
+  },
+});
+
+export const setUsername = mutation({
+  args: { username: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Not authenticated");
+    }
+
+    const username = args.username.toLowerCase().trim();
+
+    // Validate username
+    if (username.length < 3 || username.length > 20) {
+      throw new Error("Username must be 3-20 characters");
+    }
+
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      throw new Error("Username can only contain letters, numbers, and underscores");
+    }
+
+    // Check if username is taken
+    const existingUserWithUsername = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .first();
+
+    if (existingUserWithUsername) {
+      throw new Error("Username is already taken");
+    }
+
+    // Get current user
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_workos_id", (q) => q.eq("workosId", identity.subject))
+      .first();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Update user with username
+    await ctx.db.patch(user._id, {
+      username,
+      name: username, // Also set name to username for display
+      hasCompletedSignup: true,
+    });
+
+    return { success: true, username };
   },
 });
 
@@ -102,7 +184,8 @@ export const getPublicProfile = query({
 
     return {
       _id: user._id,
-      name: user.name,
+      username: user.username,
+      name: user.name || user.username,
       avatarUrl: user.avatarUrl,
       palettes: palettesWithLikes,
     };

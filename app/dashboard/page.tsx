@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Header } from "@/components/layout/header";
@@ -10,12 +11,35 @@ import { Button } from "@/components/ui/button";
 import { Plus, Palette } from "lucide-react";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const getOrCreateUser = useMutation(api.users.getOrCreate);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     // Ensure user exists in database when they visit dashboard
-    getOrCreateUser();
-  }, [getOrCreateUser]);
+    getOrCreateUser().then((result) => {
+      if (!result.hasCompletedSignup) {
+        // Redirect to complete signup if user hasn't chosen a username yet
+        router.push("/complete-signup");
+      } else {
+        setIsReady(true);
+      }
+    }).catch(() => {
+      // If there's an error, still show the page
+      setIsReady(true);
+    });
+  }, [getOrCreateUser, router]);
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">

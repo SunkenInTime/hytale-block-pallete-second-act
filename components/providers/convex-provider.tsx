@@ -25,16 +25,23 @@ function useAuthFromAuthKit() {
   const authenticated = !!user && !!accessToken && !loading;
   const stableAccessToken = useRef<string | null>(null);
 
-  if (accessToken && !tokenError) {
+  // Clear the stale token when user signs out
+  if (!user && !loading) {
+    stableAccessToken.current = null;
+  } else if (accessToken && !tokenError) {
     stableAccessToken.current = accessToken;
   }
 
   const fetchAccessToken = useCallback(async () => {
+    // Return null if there's no user (signed out)
+    if (!user) {
+      return null;
+    }
     if (stableAccessToken.current && !tokenError) {
       return stableAccessToken.current;
     }
     return null;
-  }, [tokenError]);
+  }, [tokenError, user]);
 
   return {
     isLoading: loading,
