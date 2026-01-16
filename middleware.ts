@@ -10,6 +10,7 @@ export default authkitMiddleware({
       "/sign-up",
       "/sign-out",
       "/palette/:id",
+      "/user/:id",
     ],
   },
 });

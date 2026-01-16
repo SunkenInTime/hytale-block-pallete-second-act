@@ -70,3 +70,41 @@ export const getById = query({
     return await ctx.db.get(args.id);
   },
 });
+
+export const getPublicProfile = query({
+  args: { id: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) {
+      return null;
+    }
+
+    // Get user's published palettes
+    const palettes = await ctx.db
+      .query("palettes")
+      .withIndex("by_user", (q) => q.eq("userId", user.workosId))
+      .filter((q) => q.eq(q.field("isPublished"), true))
+      .collect();
+
+    // Get likes count for each palette
+    const palettesWithLikes = await Promise.all(
+      palettes.map(async (palette) => {
+        const likes = await ctx.db
+          .query("likes")
+          .withIndex("by_palette", (q) => q.eq("paletteId", palette._id))
+          .collect();
+        return {
+          ...palette,
+          likesCount: likes.length,
+        };
+      })
+    );
+
+    return {
+      _id: user._id,
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      palettes: palettesWithLikes,
+    };
+  },
+});

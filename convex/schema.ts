@@ -27,4 +27,11 @@ export default defineSchema({
     email: v.string(),
     avatarUrl: v.optional(v.string()),
   }).index("by_workos_id", ["workosId"]),
+
+  likes: defineTable({
+    userId: v.string(),
+    paletteId: v.id("palettes"),
+  }).index("by_user", ["userId"])
+    .index("by_palette", ["paletteId"])
+    .index("by_user_and_palette", ["userId", "paletteId"]),
 });

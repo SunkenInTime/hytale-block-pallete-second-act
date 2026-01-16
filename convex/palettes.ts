@@ -24,16 +24,24 @@ export const getPublished = query({
       .withIndex("by_published", (q) => q.eq("isPublished", true))
       .collect();
 
-    // Get user info for each palette
+    // Get user info and likes count for each palette
     const palettesWithUsers = await Promise.all(
       palettes.map(async (palette) => {
         const user = await ctx.db
           .query("users")
           .withIndex("by_workos_id", (q) => q.eq("workosId", palette.userId))
           .first();
+
+        // Get likes count
+        const likes = await ctx.db
+          .query("likes")
+          .withIndex("by_palette", (q) => q.eq("paletteId", palette._id))
+          .collect();
+
         return {
           ...palette,
-          user: user ? { name: user.name, avatarUrl: user.avatarUrl } : null,
+          likesCount: likes.length,
+          user: user ? { _id: user._id, name: user.name, avatarUrl: user.avatarUrl } : null,
         };
       })
     );
@@ -64,10 +72,17 @@ export const getById = query({
       .withIndex("by_workos_id", (q) => q.eq("workosId", palette.userId))
       .first();
 
+    // Get likes count
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_palette", (q) => q.eq("paletteId", args.id))
+      .collect();
+
     return {
       ...palette,
       slotsWithBlocks,
-      user: user ? { name: user.name, avatarUrl: user.avatarUrl } : null,
+      likesCount: likes.length,
+      user: user ? { _id: user._id, name: user.name, avatarUrl: user.avatarUrl } : null,
     };
   },
 });

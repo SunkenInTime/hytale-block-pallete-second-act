@@ -2,6 +2,11 @@
 
 import { getBlockImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface BlockCardProps {
   slug: string;
@@ -10,6 +15,7 @@ interface BlockCardProps {
   selected?: boolean;
   onClick?: () => void;
   size?: "sm" | "md" | "lg";
+  showTooltip?: boolean;
 }
 
 export function BlockCard({
@@ -19,6 +25,7 @@ export function BlockCard({
   selected,
   onClick,
   size = "md",
+  showTooltip = true,
 }: BlockCardProps) {
   // Sizes based on 32x32 pixel art - using multiples for crisp scaling
   const sizeClasses = {
@@ -29,18 +36,17 @@ export function BlockCard({
 
   const imageUrl = getBlockImageUrl(slug);
 
-  return (
+  const button = (
     <button
       onClick={onClick}
       className={cn(
-        "relative border-2 transition-all hover:scale-105 overflow-hidden bg-muted",
+        "relative border-2 transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 overflow-hidden bg-muted rounded-sm",
         sizeClasses[size],
         selected
-          ? "border-primary ring-2 ring-primary/20"
-          : "border-border hover:border-primary/50",
-        onClick && "cursor-pointer"
+          ? "border-primary ring-2 ring-primary/30 shadow-lg shadow-primary/20"
+          : "border-border hover:border-primary/50 hover:shadow-md",
+        onClick && "cursor-pointer active:scale-95"
       )}
-      title={name}
       style={{
         backgroundImage: `url(${imageUrl})`,
         backgroundSize: "100% 100%",
@@ -54,4 +60,17 @@ export function BlockCard({
       )}
     </button>
   );
+
+  if (showTooltip) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>
+          <p>{name}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return button;
 }

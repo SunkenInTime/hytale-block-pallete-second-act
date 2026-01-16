@@ -9,6 +9,7 @@
  */
 
 import type * as blocks from "../blocks.js";
+import type * as likes from "../likes.js";
 import type * as palettes from "../palettes.js";
 import type * as users from "../users.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   blocks: typeof blocks;
+  likes: typeof likes;
   palettes: typeof palettes;
   users: typeof users;
 }>;

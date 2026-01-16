@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BlockCard } from "@/components/blocks/block-card";
-import { Globe, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { getBlockImageUrl } from "@/lib/images";
 import { Id } from "@/convex/_generated/dataModel";
+import { LikeButton } from "./like-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface Block {
   _id: Id<"blocks">;
@@ -20,91 +21,159 @@ interface PaletteCardProps {
   description?: string;
   blocks: (Block | null)[];
   isPublished?: boolean;
+  likesCount?: number;
+  createdAt?: number;
   user?: {
+    _id?: Id<"users">;
     name?: string;
     avatarUrl?: string;
   } | null;
   showUser?: boolean;
+  showLikeButton?: boolean;
   href?: string;
 }
 
 export function PaletteCard({
   id,
   name,
-  description,
   blocks,
-  isPublished,
+  likesCount = 0,
+  createdAt,
   user,
   showUser = false,
+  showLikeButton = true,
   href,
 }: PaletteCardProps) {
-  const content = (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{name}</CardTitle>
-            {description && (
-              <CardDescription className="line-clamp-2">
-                {description}
-              </CardDescription>
+  const router = useRouter();
+
+  // Get the first 6 blocks for a 3x2 grid
+  const displayBlocks = blocks.slice(0, 6);
+
+  // Format the date
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const BlockGrid = () => (
+    <div className="rounded-xl overflow-hidden bg-muted aspect-[3/2] ring-1 ring-border/50 transition-all duration-300 group-hover:ring-primary/30 group-hover:shadow-xl group-hover:shadow-primary/5">
+      <div className="grid grid-cols-3 grid-rows-2 h-full">
+        {displayBlocks.map((block, index) => (
+          <div
+            key={`${id}-${index}`}
+            className={cn(
+              "relative transition-transform duration-300",
+              "group-hover:scale-[1.02]"
+            )}
+            style={{
+              backgroundImage: block ? `url(${getBlockImageUrl(block.slug)})` : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              imageRendering: "pixelated",
+              transitionDelay: `${index * 30}ms`,
+            }}
+          >
+            {!block && (
+              <div className="absolute inset-0 bg-muted-foreground/10" />
             )}
           </div>
-          {isPublished !== undefined && (
-            <span className="text-muted-foreground">
-              {isPublished ? (
-                <Globe className="h-4 w-4" />
-              ) : (
-                <Lock className="h-4 w-4" />
-              )}
-            </span>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          {blocks.slice(0, 6).map((block, index) =>
-            block ? (
-              <BlockCard
-                key={`${id}-${index}`}
-                slug={block.slug}
-                name={block.name}
-                size="sm"
-              />
-            ) : (
-              <div
-                key={`${id}-empty-${index}`}
-                className="w-8 h-8 rounded border border-dashed border-muted-foreground/30"
-              />
-            )
-          )}
-          {blocks.length > 6 && (
-            <div className="w-8 h-8 rounded border flex items-center justify-center text-xs text-muted-foreground">
-              +{blocks.length - 6}
-            </div>
-          )}
-        </div>
+        ))}
+        {Array.from({ length: Math.max(0, 6 - displayBlocks.length) }).map((_, index) => (
+          <div
+            key={`${id}-empty-${index}`}
+            className="bg-muted-foreground/10"
+          />
+        ))}
+      </div>
+    </div>
+  );
 
-        {showUser && user && (
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={user.avatarUrl} />
-              <AvatarFallback className="text-xs">
-                {user.name?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-muted-foreground">
-              {user.name || "Anonymous"}
-            </span>
+  const CardContent = () => (
+    <>
+      <BlockGrid />
+      <div className="mt-3 space-y-2">
+        <h3 className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
+          {name}
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {showUser && user && (
+              <span
+                role="button"
+                tabIndex={0}
+                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (user._id) {
+                    router.push(`/user/${user._id}`);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (user._id) {
+                      router.push(`/user/${user._id}`);
+                    }
+                  }
+                }}
+              >
+                <Avatar className="h-5 w-5">
+                  <AvatarImage src={user.avatarUrl} />
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                    {user.name?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                  {user.name || "Anonymous"}
+                </span>
+              </span>
+            )}
+            {!showUser && createdAt && (
+              <span className="text-xs text-muted-foreground">
+                {formatDate(createdAt)}
+              </span>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+          {showLikeButton ? (
+            <LikeButton
+              paletteId={id}
+              likesCount={likesCount}
+              size="sm"
+              className="h-7 px-2 rounded-full"
+            />
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {likesCount} likes
+            </span>
+          )}
+        </div>
+      </div>
+    </>
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return (
+      <div className="group">
+        <Link href={href} className="block">
+          <div className="transition-transform duration-300 group-hover:-translate-y-1">
+            <CardContent />
+          </div>
+        </Link>
+      </div>
+    );
   }
 
-  return content;
+  return (
+    <div className="group cursor-pointer">
+      <div className="transition-transform duration-300 group-hover:-translate-y-1">
+        <CardContent />
+      </div>
+    </div>
+  );
 }

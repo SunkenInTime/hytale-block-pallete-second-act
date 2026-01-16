@@ -8,6 +8,9 @@ import {
   useAuth,
   useAccessToken,
 } from "@workos-inc/authkit-nextjs/components";
+import { ImagePreloaderProvider } from "./image-preloader";
+import { LoadingScreen } from "@/components/ui/loading-screen";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -44,7 +47,11 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
     <AuthKitProvider>
       <ConvexProviderWithAuth client={convex} useAuth={useAuthFromAuthKit}>
-        {children}
+        <TooltipProvider delayDuration={200}>
+          <ImagePreloaderProvider>
+            <LoadingScreen>{children}</LoadingScreen>
+          </ImagePreloaderProvider>
+        </TooltipProvider>
       </ConvexProviderWithAuth>
     </AuthKitProvider>
   );
