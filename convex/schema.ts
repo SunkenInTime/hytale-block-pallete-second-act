@@ -13,7 +13,9 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
-    slots: v.array(v.union(v.id("blocks"), v.null())),
+    // Slots can be: Id<"blocks"> (legacy), string slug (new), or null (empty)
+    // During migration we accept both; after migration we'll tighten to string|null
+    slots: v.array(v.union(v.id("blocks"), v.string(), v.null())),
     maxSlots: v.number(),
     isPublished: v.boolean(),
     createdAt: v.number(),

@@ -9,10 +9,35 @@ export const getByUser = query({
       return [];
     }
 
-    return await ctx.db
+    const palettes = await ctx.db
       .query("palettes")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .collect();
+
+    // Convert slots to slugs (handle legacy IDs)
+    const palettesWithSlugs = await Promise.all(
+      palettes.map(async (palette) => {
+        const slotsAsSlugs = await Promise.all(
+          palette.slots.map(async (slot) => {
+            if (slot === null) return null;
+            // If it's a short string, it's likely already a slug
+            if (typeof slot === "string" && slot.length < 50) {
+              return slot;
+            }
+            // Otherwise try to resolve it as an ID
+            try {
+              const block = await ctx.db.get(slot as any);
+              return block?.slug ?? null;
+            } catch {
+              return slot as string;
+            }
+          })
+        );
+        return { ...palette, slots: slotsAsSlugs };
+      })
+    );
+
+    return palettesWithSlugs;
   },
 });
 
@@ -24,7 +49,7 @@ export const getPublished = query({
       .withIndex("by_published", (q) => q.eq("isPublished", true))
       .collect();
 
-    // Get user info and likes count for each palette
+    // Get user info and likes count for each palette, and convert slots to slugs
     const palettesWithUsers = await Promise.all(
       palettes.map(async (palette) => {
         const user = await ctx.db
@@ -38,8 +63,27 @@ export const getPublished = query({
           .withIndex("by_palette", (q) => q.eq("paletteId", palette._id))
           .collect();
 
+        // Convert slots to slugs (handle legacy IDs)
+        const slotsAsSlugs = await Promise.all(
+          palette.slots.map(async (slot) => {
+            if (slot === null) return null;
+            // If it's a short string, it's likely already a slug
+            if (typeof slot === "string" && slot.length < 50) {
+              return slot;
+            }
+            // Otherwise try to resolve it as an ID
+            try {
+              const block = await ctx.db.get(slot as any);
+              return block?.slug ?? null;
+            } catch {
+              return slot as string;
+            }
+          })
+        );
+
         return {
           ...palette,
+          slots: slotsAsSlugs,
           likesCount: likes.length,
           user: user ? { _id: user._id, name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
         };
@@ -58,11 +102,22 @@ export const getById = query({
       return null;
     }
 
-    // Get block details for each slot
-    const slotsWithBlocks = await Promise.all(
-      palette.slots.map(async (blockId) => {
-        if (blockId === null) return null;
-        return await ctx.db.get(blockId);
+    // Convert slots to slugs if they're still IDs (for backwards compatibility)
+    const slotsAsSlugs = await Promise.all(
+      palette.slots.map(async (slot) => {
+        if (slot === null) return null;
+        // If it's already a string (slug), return as-is
+        if (typeof slot === "string" && !slot.startsWith("k")) {
+          return slot;
+        }
+        // Otherwise it might be an ID - try to resolve it
+        try {
+          const block = await ctx.db.get(slot as any);
+          return block?.slug ?? null;
+        } catch {
+          // If it's actually a slug string that starts with 'k', return it
+          return slot as string;
+        }
       })
     );
 
@@ -80,7 +135,7 @@ export const getById = query({
 
     return {
       ...palette,
-      slotsWithBlocks,
+      slots: slotsAsSlugs, // Return slots as slugs
       likesCount: likes.length,
       user: user ? { _id: user._id, name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
     };
@@ -119,7 +174,8 @@ export const update = mutation({
     id: v.id("palettes"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    slots: v.optional(v.array(v.union(v.id("blocks"), v.null()))),
+    // Accept slots as slugs (strings) or null
+    slots: v.optional(v.array(v.union(v.string(), v.null()))),
     maxSlots: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -204,11 +260,12 @@ export const togglePublish = mutation({
   },
 });
 
+// New: Add block to slot using slug
 export const addBlockToSlot = mutation({
   args: {
     paletteId: v.id("palettes"),
     slotIndex: v.number(),
-    blockId: v.union(v.id("blocks"), v.null()),
+    blockSlug: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -229,12 +286,27 @@ export const addBlockToSlot = mutation({
       throw new Error("Invalid slot index");
     }
 
-    const newSlots = [...palette.slots];
+    // Convert existing slots to strings/nulls (handle legacy IDs)
+    const newSlots: (string | null)[] = await Promise.all(
+      palette.slots.map(async (slot) => {
+        if (slot === null) return null;
+        if (typeof slot === "string" && !slot.startsWith("k")) {
+          return slot;
+        }
+        try {
+          const block = await ctx.db.get(slot as any);
+          return block?.slug ?? null;
+        } catch {
+          return slot as string;
+        }
+      })
+    );
+
     // Ensure slots array has enough elements
     while (newSlots.length < palette.maxSlots) {
       newSlots.push(null);
     }
-    newSlots[args.slotIndex] = args.blockId;
+    newSlots[args.slotIndex] = args.blockSlug;
 
     await ctx.db.patch(args.paletteId, {
       slots: newSlots,
@@ -273,7 +345,22 @@ export const expandSlots = mutation({
       throw new Error("New max slots must be greater than current");
     }
 
-    const newSlots = [...palette.slots];
+    // Convert existing slots to strings/nulls (handle legacy IDs)
+    const newSlots: (string | null)[] = await Promise.all(
+      palette.slots.map(async (slot) => {
+        if (slot === null) return null;
+        if (typeof slot === "string" && !slot.startsWith("k")) {
+          return slot;
+        }
+        try {
+          const block = await ctx.db.get(slot as any);
+          return block?.slug ?? null;
+        } catch {
+          return slot as string;
+        }
+      })
+    );
+
     while (newSlots.length < args.newMaxSlots) {
       newSlots.push(null);
     }
@@ -285,5 +372,69 @@ export const expandSlots = mutation({
     });
 
     return args.paletteId;
+  },
+});
+
+// Migration: Convert all palette slots from block IDs to slugs
+export const migrateSlotsToSlugs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const palettes = await ctx.db.query("palettes").collect();
+    let migratedCount = 0;
+
+    for (const palette of palettes) {
+      let needsMigration = false;
+      const newSlots: (string | null)[] = [];
+
+      for (const slot of palette.slots) {
+        if (slot === null) {
+          newSlots.push(null);
+        } else if (typeof slot === "string") {
+          // Check if it looks like a Convex ID (starts with certain patterns)
+          // Convex IDs are typically longer strings with specific patterns
+          if (slot.length > 20) {
+            // Likely an ID, try to resolve it
+            try {
+              const block = await ctx.db.get(slot as any);
+              if (block) {
+                newSlots.push(block.slug);
+                needsMigration = true;
+              } else {
+                newSlots.push(null);
+                needsMigration = true;
+              }
+            } catch {
+              // Not a valid ID, treat as slug
+              newSlots.push(slot);
+            }
+          } else {
+            // Short string, likely already a slug
+            newSlots.push(slot);
+          }
+        } else {
+          // It's an ID object, resolve it
+          try {
+            const block = await ctx.db.get(slot);
+            if (block) {
+              newSlots.push(block.slug);
+              needsMigration = true;
+            } else {
+              newSlots.push(null);
+              needsMigration = true;
+            }
+          } catch {
+            newSlots.push(null);
+            needsMigration = true;
+          }
+        }
+      }
+
+      if (needsMigration) {
+        await ctx.db.patch(palette._id, { slots: newSlots });
+        migratedCount++;
+      }
+    }
+
+    return { message: `Migrated ${migratedCount} palettes to use slug-based slots` };
   },
 });

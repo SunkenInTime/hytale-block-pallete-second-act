@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, createContext, useContext } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { getBlockImageUrl } from "@/lib/images";
+import { BLOCKS } from "@/lib/blocks";
 
 interface ImagePreloaderContextType {
   isLoading: boolean;
@@ -28,15 +27,18 @@ interface ImagePreloaderProviderProps {
 }
 
 export function ImagePreloaderProvider({ children }: ImagePreloaderProviderProps) {
-  const blocks = useQuery(api.blocks.list);
   const [isLoading, setIsLoading] = useState(true);
   const [loadedImages, setLoadedImages] = useState(0);
   const [totalImages, setTotalImages] = useState(0);
 
   useEffect(() => {
-    if (!blocks || blocks.length === 0) return;
+    // Use static blocks data - no Convex query needed
+    if (BLOCKS.length === 0) {
+      setIsLoading(false);
+      return;
+    }
 
-    const imagesToLoad = blocks.map((block) => getBlockImageUrl(block.slug));
+    const imagesToLoad = BLOCKS.map((block) => getBlockImageUrl(block.slug));
     setTotalImages(imagesToLoad.length);
 
     let loaded = 0;
@@ -74,7 +76,7 @@ export function ImagePreloaderProvider({ children }: ImagePreloaderProviderProps
     };
 
     loadBatch(0);
-  }, [blocks]);
+  }, []);
 
   const progress = totalImages > 0 ? (loadedImages / totalImages) * 100 : 0;
 

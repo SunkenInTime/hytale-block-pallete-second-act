@@ -1,30 +1,31 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { BlockCard } from "./block-card";
-import { Id } from "@/convex/_generated/dataModel";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { Search, X } from "lucide-react";
+import { BLOCKS, CATEGORIES, type Block } from "@/lib/blocks";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface BlockGridProps {
-  selectedBlockId?: Id<"blocks"> | null;
-  onSelectBlock?: (blockId: Id<"blocks">) => void;
+  selectedBlockSlug?: string | null;
+  onSelectBlock?: (blockSlug: string) => void;
 }
 
-export function BlockGrid({ selectedBlockId, onSelectBlock }: BlockGridProps) {
-  const blocks = useQuery(api.blocks.list);
-  const categories = useQuery(api.blocks.getCategories);
+// Number of columns at different breakpoints (matching the grid classes)
+const COLUMNS = 8; // md:grid-cols-8
+
+export function BlockGrid({
+  selectedBlockSlug,
+  onSelectBlock,
+}: BlockGridProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const filteredBlocks = useMemo(() => {
-    if (!blocks) return [];
-
-    let filtered = blocks;
+    let filtered: Block[] = BLOCKS;
 
     // Filter by category
     if (activeCategory) {
@@ -43,23 +44,16 @@ export function BlockGrid({ selectedBlockId, onSelectBlock }: BlockGridProps) {
     }
 
     return filtered;
-  }, [blocks, activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery]);
 
-  if (!blocks || !categories) {
-    return (
-      <div className="space-y-4">
-        <div className="h-10 bg-muted animate-pulse rounded-md" />
-        <div className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="w-16 h-16 rounded-lg bg-muted animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Calculate rows for virtualization
+  const rowCount = Math.ceil(filteredBlocks.length / COLUMNS);
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80, // Approximate row height (64px block + 16px gap)
+    overscan: 3, // Render 3 extra rows above/below viewport
+  });
 
   return (
     <div className="space-y-4">
@@ -94,21 +88,20 @@ export function BlockGrid({ selectedBlockId, onSelectBlock }: BlockGridProps) {
         >
           All
         </Button>
-        {categories.map((category, index) => (
+        {CATEGORIES.map((category) => (
           <Button
             key={category}
             variant={activeCategory === category ? "default" : "outline"}
             size="sm"
             onClick={() => setActiveCategory(category)}
-            className="transition-all duration-200 hover:scale-105 animate-in fade-in slide-in-from-left-2"
-            style={{ animationDelay: `${index * 30}ms` }}
+            className="transition-all duration-200 hover:scale-105"
           >
             {category}
           </Button>
         ))}
       </div>
 
-      {/* Blocks Grid */}
+      {/* Blocks Grid - Virtualized */}
       {filteredBlocks.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-muted-foreground">
@@ -116,21 +109,55 @@ export function BlockGrid({ selectedBlockId, onSelectBlock }: BlockGridProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-          {filteredBlocks.map((block, index) => (
-            <div
-              key={block._id}
-              className="animate-in fade-in zoom-in-95 duration-300 fill-mode-both"
-              style={{ animationDelay: `${Math.min(index * 15, 300)}ms` }}
-            >
-              <BlockCard
-                slug={block.slug}
-                name={block.name}
-                selected={selectedBlockId === block._id}
-                onClick={onSelectBlock ? () => onSelectBlock(block._id) : undefined}
-              />
-            </div>
-          ))}
+        <div
+          ref={parentRef}
+          className="h-[400px] overflow-auto"
+        >
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const startIndex = virtualRow.index * COLUMNS;
+              const rowBlocks = filteredBlocks.slice(
+                startIndex,
+                startIndex + COLUMNS
+              );
+
+              return (
+                <div
+                  key={virtualRow.key}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
+                    {rowBlocks.map((block) => (
+                      <BlockCard
+                        key={block.slug}
+                        slug={block.slug}
+                        name={block.name}
+                        selected={selectedBlockSlug === block.slug}
+                        onClick={
+                          onSelectBlock
+                            ? () => onSelectBlock(block.slug)
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

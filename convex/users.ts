@@ -168,15 +168,35 @@ export const getPublicProfile = query({
       .filter((q) => q.eq(q.field("isPublished"), true))
       .collect();
 
-    // Get likes count for each palette
+    // Get likes count for each palette and convert slots to slugs
     const palettesWithLikes = await Promise.all(
       palettes.map(async (palette) => {
         const likes = await ctx.db
           .query("likes")
           .withIndex("by_palette", (q) => q.eq("paletteId", palette._id))
           .collect();
+
+        // Convert slots to slugs (handle legacy IDs)
+        const slotsAsSlugs = await Promise.all(
+          palette.slots.map(async (slot) => {
+            if (slot === null) return null;
+            // If it's a short string, it's likely already a slug
+            if (typeof slot === "string" && slot.length < 50) {
+              return slot;
+            }
+            // Otherwise try to resolve it as an ID
+            try {
+              const block = await ctx.db.get(slot as any);
+              return block?.slug ?? null;
+            } catch {
+              return slot as string;
+            }
+          })
+        );
+
         return {
           ...palette,
+          slots: slotsAsSlugs,
           likesCount: likes.length,
         };
       })

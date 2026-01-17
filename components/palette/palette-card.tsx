@@ -8,8 +8,8 @@ import { LikeButton } from "./like-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
+// Block can be from static data (no _id) or legacy Convex data (with _id)
 interface Block {
-  _id: Id<"blocks">;
   slug: string;
   name: string;
   category: string;

@@ -35,6 +35,7 @@ import {
 import { getBlockImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { BLOCKS, getBlockBySlug } from "@/lib/blocks";
 
 interface PaletteEditorProps {
   paletteId?: Id<"palettes">;
@@ -53,7 +54,6 @@ export function PaletteEditor({
     api.palettes.getById,
     paletteId ? { id: paletteId } : "skip"
   );
-  const blocks = useQuery(api.blocks.list);
 
   const createPalette = useMutation(api.palettes.create);
   const updatePalette = useMutation(api.palettes.update);
@@ -144,14 +144,15 @@ export function PaletteEditor({
     setSelectorOpen(true);
   };
 
-  const handleSelectBlock = async (blockId: Id<"blocks">) => {
+  // Updated to use slug instead of ID
+  const handleSelectBlock = async (blockSlug: string) => {
     if (!paletteId || selectedSlot === null) return;
 
     try {
       await addBlockToSlot({
         paletteId,
         slotIndex: selectedSlot,
-        blockId,
+        blockSlug,
       });
     } catch {
       toast.error("Failed to add block");
@@ -167,7 +168,7 @@ export function PaletteEditor({
       await addBlockToSlot({
         paletteId,
         slotIndex: index,
-        blockId: null,
+        blockSlug: null,
       });
     } catch {
       toast.error("Failed to remove block");
@@ -185,7 +186,7 @@ export function PaletteEditor({
             addBlockToSlot({
               paletteId,
               slotIndex: i,
-              blockId: null,
+              blockSlug: null,
             })
           );
         }
@@ -210,19 +211,20 @@ export function PaletteEditor({
     });
   }, []);
 
+  // Updated to use static BLOCKS and slugs
   const handleRandomize = async () => {
-    if (!paletteId || !palette || !blocks || blocks.length === 0) return;
+    if (!paletteId || !palette || BLOCKS.length === 0) return;
 
     setIsRandomizing(true);
 
     try {
-      const usedBlockIds = new Set<string>();
+      const usedSlugs = new Set<string>();
       const randomPromises = [];
 
-      // Keep locked slots' block IDs
+      // Keep locked slots' block slugs
       for (let i = 0; i < palette.maxSlots; i++) {
         if (lockedSlots.has(i) && palette.slots[i]) {
-          usedBlockIds.add(palette.slots[i] as string);
+          usedSlugs.add(palette.slots[i] as string);
         }
       }
 
@@ -233,17 +235,17 @@ export function PaletteEditor({
         let randomBlock;
         let attempts = 0;
         do {
-          randomBlock = blocks[Math.floor(Math.random() * blocks.length)];
+          randomBlock = BLOCKS[Math.floor(Math.random() * BLOCKS.length)];
           attempts++;
-        } while (usedBlockIds.has(randomBlock._id) && attempts < 100);
+        } while (usedSlugs.has(randomBlock.slug) && attempts < 100);
 
-        usedBlockIds.add(randomBlock._id);
+        usedSlugs.add(randomBlock.slug);
 
         randomPromises.push(
           addBlockToSlot({
             paletteId,
             slotIndex: i,
-            blockId: randomBlock._id,
+            blockSlug: randomBlock.slug,
           })
         );
       }
@@ -287,9 +289,12 @@ export function PaletteEditor({
     }
   };
 
+  // Updated to use static blocks lookup by slug
   const getBlockForSlot = (index: number) => {
-    if (!palette?.slotsWithBlocks) return null;
-    return palette.slotsWithBlocks[index] || null;
+    if (!palette?.slots) return null;
+    const slug = palette.slots[index];
+    if (!slug || typeof slug !== "string") return null;
+    return getBlockBySlug(slug) ?? null;
   };
 
   // Loading state
@@ -734,9 +739,9 @@ export function PaletteEditor({
         open={selectorOpen}
         onOpenChange={setSelectorOpen}
         onSelectBlock={handleSelectBlock}
-        selectedBlockId={
+        selectedBlockSlug={
           selectedSlot !== null && palette
-            ? (palette.slots[selectedSlot] as Id<"blocks"> | null)
+            ? (palette.slots[selectedSlot] as string | null)
             : null
         }
       />

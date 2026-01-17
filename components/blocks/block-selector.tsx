@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,24 +9,39 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { BlockGrid } from "./block-grid";
-import { Id } from "@/convex/_generated/dataModel";
-import { Blocks } from "lucide-react";
+import { Blocks, Loader2 } from "lucide-react";
 
 interface BlockSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectBlock: (blockId: Id<"blocks">) => void;
-  selectedBlockId?: Id<"blocks"> | null;
+  onSelectBlock: (blockSlug: string) => void;
+  selectedBlockSlug?: string | null;
 }
 
 export function BlockSelector({
   open,
   onOpenChange,
   onSelectBlock,
-  selectedBlockId,
+  selectedBlockSlug,
 }: BlockSelectorProps) {
-  const handleSelectBlock = (blockId: Id<"blocks">) => {
-    onSelectBlock(blockId);
+  // Defer mounting the heavy BlockGrid until after the dialog has painted
+  const [shouldRenderGrid, setShouldRenderGrid] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      // Use requestAnimationFrame to defer grid mount until after dialog paints
+      const rafId = requestAnimationFrame(() => {
+        setShouldRenderGrid(true);
+      });
+      return () => cancelAnimationFrame(rafId);
+    } else {
+      // Reset when dialog closes
+      setShouldRenderGrid(false);
+    }
+  }, [open]);
+
+  const handleSelectBlock = (blockSlug: string) => {
+    onSelectBlock(blockSlug);
     onOpenChange(false);
   };
 
@@ -46,10 +62,16 @@ export function BlockSelector({
           </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-          <BlockGrid
-            selectedBlockId={selectedBlockId}
-            onSelectBlock={handleSelectBlock}
-          />
+          {shouldRenderGrid ? (
+            <BlockGrid
+              selectedBlockSlug={selectedBlockSlug}
+              onSelectBlock={handleSelectBlock}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

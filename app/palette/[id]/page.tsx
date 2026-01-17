@@ -20,6 +20,7 @@ import { getBlockImageUrl } from "@/lib/images";
 import { LikeButton } from "@/components/palette/like-button";
 import { toast } from "sonner";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
+import { getBlockBySlug } from "@/lib/blocks";
 
 export default function PaletteViewPage() {
   const params = useParams();
@@ -68,8 +69,13 @@ export default function PaletteViewPage() {
     );
   }
 
-  // Filter out null blocks for display
-  const validBlocks = palette.slotsWithBlocks.filter((block): block is NonNullable<typeof block> => block !== null);
+  // Get blocks from slugs using static data
+  const validBlocks = palette.slots
+    .map((slug) => {
+      if (!slug || typeof slug !== "string") return null;
+      return getBlockBySlug(slug);
+    })
+    .filter((block): block is NonNullable<typeof block> => block !== null);
 
   // Calculate grid dimensions (aim for roughly square aspect ratio)
   const blockCount = validBlocks.length;

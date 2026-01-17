@@ -63,8 +63,27 @@ export const getUserLikedPalettes = query({
           .withIndex("by_palette", (q) => q.eq("paletteId", palette._id))
           .collect();
 
+        // Convert slots to slugs (handle legacy IDs)
+        const slotsAsSlugs = await Promise.all(
+          palette.slots.map(async (slot) => {
+            if (slot === null) return null;
+            // If it's a short string, it's likely already a slug
+            if (typeof slot === "string" && slot.length < 50) {
+              return slot;
+            }
+            // Otherwise try to resolve it as an ID
+            try {
+              const block = await ctx.db.get(slot as any);
+              return block?.slug ?? null;
+            } catch {
+              return slot as string;
+            }
+          })
+        );
+
         return {
           ...palette,
+          slots: slotsAsSlugs,
           likesCount: paletteLikes.length,
           user: user ? { name: user.name || user.username, avatarUrl: user.avatarUrl } : null,
         };

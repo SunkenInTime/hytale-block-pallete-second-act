@@ -8,14 +8,14 @@ import { Header } from "@/components/layout/header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PaletteCard } from "@/components/palette/palette-card";
 import { Palette } from "lucide-react";
+import { getBlockBySlug } from "@/lib/blocks";
 
 export default function UserProfilePage() {
   const params = useParams();
   const userId = params.id as Id<"users">;
   const profile = useQuery(api.users.getPublicProfile, { id: userId });
-  const blocks = useQuery(api.blocks.list);
 
-  if (!profile || !blocks) {
+  if (!profile) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
         <Header />
@@ -41,9 +41,6 @@ export default function UserProfilePage() {
       </div>
     );
   }
-
-  // Create a map of blocks by ID for quick lookup
-  const blocksMap = new Map(blocks.map((b) => [b._id, b]));
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
@@ -84,9 +81,11 @@ export default function UserProfilePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {profile.palettes.map((palette) => {
-                const paletteBlocks = palette.slots.map((blockId) =>
-                  blockId ? blocksMap.get(blockId) || null : null
-                );
+                // Get block objects from slugs using static data
+                const paletteBlocks = palette.slots.map((slug) => {
+                  if (!slug || typeof slug !== "string") return null;
+                  return getBlockBySlug(slug) ?? null;
+                });
 
                 return (
                   <PaletteCard

@@ -6,6 +6,7 @@ import { PaletteCard } from "./palette-card";
 import { Id } from "@/convex/_generated/dataModel";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { getBlockBySlug } from "@/lib/blocks";
 
 interface PaletteGridProps {
   type: "user" | "published" | "liked";
@@ -24,11 +25,10 @@ export function PaletteGrid({ type }: PaletteGridProps) {
     api.likes.getUserLikedPalettes,
     type === "liked" ? {} : "skip"
   );
-  const blocks = useQuery(api.blocks.list);
 
   const palettes = type === "user" ? userPalettes : type === "liked" ? likedPalettes : publishedPalettes;
 
-  if (!palettes || !blocks) {
+  if (!palettes) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -75,16 +75,14 @@ export function PaletteGrid({ type }: PaletteGridProps) {
     );
   }
 
-  // Create a map of blocks by ID for quick lookup
-  const blocksMap = new Map(blocks.map((b) => [b._id, b]));
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {palettes.map((palette, index) => {
-        // Get block objects for the slots
-        const paletteBlocks = palette.slots.map((blockId) =>
-          blockId ? blocksMap.get(blockId) || null : null
-        );
+        // Get block objects from slugs using static data
+        const paletteBlocks = palette.slots.map((slug) => {
+          if (!slug || typeof slug !== "string") return null;
+          return getBlockBySlug(slug) ?? null;
+        });
 
         const paletteUser = (palette as { user?: { _id?: Id<"users">; name?: string; avatarUrl?: string } }).user;
 
