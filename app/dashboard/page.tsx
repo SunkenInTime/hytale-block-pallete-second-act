@@ -45,9 +45,9 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
 
-      <main className="flex-1 py-8 px-4">
-        <div className="container max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
+      <main className="flex-1 py-6 px-2 sm:px-4 lg:px-6">
+        <div className="w-full">
+          <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Palette className="h-6 w-6 text-primary" />

@@ -30,8 +30,8 @@ export function PaletteGrid({ type }: PaletteGridProps) {
 
   if (!palettes) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="space-y-3">
             <div className="aspect-[3/2] rounded-xl bg-muted animate-pulse" />
             <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
@@ -76,7 +76,7 @@ export function PaletteGrid({ type }: PaletteGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {palettes.map((palette, index) => {
         // Get block objects from slugs using static data
         const paletteBlocks = palette.slots.map((slug) => {

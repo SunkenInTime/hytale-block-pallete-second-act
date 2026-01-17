@@ -19,8 +19,8 @@ export default function UserProfilePage() {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
         <Header />
-        <main className="flex-1 py-8 px-4">
-          <div className="container max-w-6xl mx-auto">
+        <main className="flex-1 py-6 px-2 sm:px-4 lg:px-6">
+          <div className="w-full">
             <div className="flex items-center gap-4 mb-8">
               <div className="h-20 w-20 rounded-full bg-muted animate-pulse" />
               <div className="space-y-2">
@@ -28,8 +28,8 @@ export default function UserProfilePage() {
                 <div className="h-5 w-28 bg-muted animate-pulse rounded" />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="space-y-3">
                   <div className="aspect-[3/2] rounded-xl bg-muted animate-pulse" />
                   <div className="h-4 w-2/3 bg-muted animate-pulse rounded" />
@@ -46,8 +46,8 @@ export default function UserProfilePage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
       <Header />
 
-      <main className="flex-1 py-8 px-4">
-        <div className="container max-w-6xl mx-auto">
+      <main className="flex-1 py-6 px-2 sm:px-4 lg:px-6">
+        <div className="w-full">
           {/* Profile Header */}
           <div className="flex items-center gap-5 mb-10 p-6 rounded-2xl bg-card border">
             <Avatar className="h-20 w-20 ring-4 ring-primary/10">
@@ -79,7 +79,7 @@ export default function UserProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {profile.palettes.map((palette) => {
                 // Get block objects from slugs using static data
                 const paletteBlocks = palette.slots.map((slug) => {
