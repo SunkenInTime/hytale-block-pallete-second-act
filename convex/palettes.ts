@@ -26,7 +26,7 @@ export const getByUser = query({
             }
             // Otherwise try to resolve it as an ID
             try {
-              const block = await ctx.db.get(slot as any);
+              const block = await ctx.db.get(slot as any) as { slug?: string } | null;
               return block?.slug ?? null;
             } catch {
               return slot as string;
@@ -73,7 +73,7 @@ export const getPublished = query({
             }
             // Otherwise try to resolve it as an ID
             try {
-              const block = await ctx.db.get(slot as any);
+              const block = await ctx.db.get(slot as any) as { slug?: string } | null;
               return block?.slug ?? null;
             } catch {
               return slot as string;
@@ -112,7 +112,7 @@ export const getById = query({
         }
         // Otherwise it might be an ID - try to resolve it
         try {
-          const block = await ctx.db.get(slot as any);
+          const block = await ctx.db.get(slot as any) as { slug?: string } | null;
           return block?.slug ?? null;
         } catch {
           // If it's actually a slug string that starts with 'k', return it
@@ -294,7 +294,7 @@ export const addBlockToSlot = mutation({
           return slot;
         }
         try {
-          const block = await ctx.db.get(slot as any);
+          const block = await ctx.db.get(slot as any) as { slug?: string } | null;
           return block?.slug ?? null;
         } catch {
           return slot as string;
@@ -353,7 +353,7 @@ export const expandSlots = mutation({
           return slot;
         }
         try {
-          const block = await ctx.db.get(slot as any);
+          const block = await ctx.db.get(slot as any) as { slug?: string } | null;
           return block?.slug ?? null;
         } catch {
           return slot as string;
@@ -395,8 +395,8 @@ export const migrateSlotsToSlugs = mutation({
           if (slot.length > 20) {
             // Likely an ID, try to resolve it
             try {
-              const block = await ctx.db.get(slot as any);
-              if (block) {
+              const block = await ctx.db.get(slot as any) as { slug?: string } | null;
+              if (block?.slug) {
                 newSlots.push(block.slug);
                 needsMigration = true;
               } else {
@@ -414,8 +414,8 @@ export const migrateSlotsToSlugs = mutation({
         } else {
           // It's an ID object, resolve it
           try {
-            const block = await ctx.db.get(slot);
-            if (block) {
+            const block = await ctx.db.get(slot) as { slug?: string } | null;
+            if (block?.slug) {
               newSlots.push(block.slug);
               needsMigration = true;
             } else {

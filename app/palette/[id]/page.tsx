@@ -20,7 +20,7 @@ import { getBlockImageUrl } from "@/lib/images";
 import { LikeButton } from "@/components/palette/like-button";
 import { toast } from "sonner";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
-import { getBlockBySlug } from "@/lib/blocks";
+import { getBlockBySlug, Block } from "@/lib/blocks";
 
 export default function PaletteViewPage() {
   const params = useParams();
@@ -71,11 +71,11 @@ export default function PaletteViewPage() {
 
   // Get blocks from slugs using static data
   const validBlocks = palette.slots
-    .map((slug) => {
+    .map((slug: unknown) => {
       if (!slug || typeof slug !== "string") return null;
       return getBlockBySlug(slug);
     })
-    .filter((block): block is NonNullable<typeof block> => block !== null);
+    .filter((block: Block | null | undefined): block is Block => block !== null && block !== undefined);
 
   // Calculate grid dimensions (aim for roughly square aspect ratio)
   const blockCount = validBlocks.length;
@@ -112,7 +112,7 @@ export default function PaletteViewPage() {
                 aspectRatio: `${cols}/${rows}`,
               }}
             >
-              {validBlocks.map((block, index) => (
+              {validBlocks.map((block: Block, index: number) => (
                 <div
                   key={`${paletteId}-grid-${index}`}
                   className="aspect-square animate-in fade-in duration-500"
@@ -191,7 +191,7 @@ export default function PaletteViewPage() {
           <div className="max-w-2xl mx-auto">
             <h2 className="text-lg font-semibold mb-4">Blocks in this palette</h2>
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-              {validBlocks.map((block, index) => (
+              {validBlocks.map((block: Block, index: number) => (
                 <Tooltip key={`${paletteId}-thumb-${index}`}>
                   <TooltipTrigger asChild>
                     <div

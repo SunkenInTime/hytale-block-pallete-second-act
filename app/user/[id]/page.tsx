@@ -82,7 +82,7 @@ export default function UserProfilePage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {profile.palettes.map((palette) => {
                 // Get block objects from slugs using static data
-                const paletteBlocks = palette.slots.map((slug) => {
+                const paletteBlocks = palette.slots.map((slug: unknown) => {
                   if (!slug || typeof slug !== "string") return null;
                   return getBlockBySlug(slug) ?? null;
                 });

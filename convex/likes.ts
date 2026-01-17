@@ -73,7 +73,7 @@ export const getUserLikedPalettes = query({
             }
             // Otherwise try to resolve it as an ID
             try {
-              const block = await ctx.db.get(slot as any);
+              const block = await ctx.db.get(slot as any) as { slug?: string } | null;
               return block?.slug ?? null;
             } catch {
               return slot as string;

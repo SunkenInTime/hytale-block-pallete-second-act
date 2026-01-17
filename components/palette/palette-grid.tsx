@@ -79,7 +79,7 @@ export function PaletteGrid({ type }: PaletteGridProps) {
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {palettes.map((palette, index) => {
         // Get block objects from slugs using static data
-        const paletteBlocks = palette.slots.map((slug) => {
+        const paletteBlocks = palette.slots.map((slug: unknown) => {
           if (!slug || typeof slug !== "string") return null;
           return getBlockBySlug(slug) ?? null;
         });

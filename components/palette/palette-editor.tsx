@@ -479,7 +479,7 @@ export function PaletteEditor({
                     size="sm"
                     onClick={handleClearAll}
                     className="gap-2"
-                    disabled={!palette.slots.some((s, i) => s && !lockedSlots.has(i))}
+                    disabled={!palette.slots.some((s: unknown, i: number) => s && !lockedSlots.has(i))}
                   >
                     <Eraser className="h-4 w-4" />
                     Clear
