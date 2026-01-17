@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useQuery } from "convex/react";
@@ -85,10 +86,10 @@ export function Header() {
         {/* Logo - Left */}
         <div className="flex items-center pointer-events-auto">
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
-              <span className="text-primary-foreground font-bold text-sm">BP</span>
-            </div>
-            <span className="font-semibold hidden sm:inline">Block Palettes</span>
+
+            <Image className="transition-transform group-hover:scale-105" src="/logo.png" alt="Block Palettes" width={36} height={36} />
+
+            <span className="font-semibold hidden sm:inline">Hytale Block Palettes</span>
           </Link>
         </div>
 
